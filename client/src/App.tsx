@@ -1,5 +1,10 @@
 import "./App.css";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  InvalidateQueryFilters,
+} from "@tanstack/react-query";
 
 const POSTS = [
   { id: 1, title: "Post 1" },
@@ -7,11 +12,23 @@ const POSTS = [
   { id: 3, title: "Post 3" },
 ];
 function App() {
+  console.log(POSTS);
+  const queryClient = useQueryClient();
   const postQuery = useQuery({
     queryKey: ["posts"],
     // checking if the query is failed
     // queryFn: () => Promise.reject("Error message"),
     queryFn: () => wait(1000).then(() => [...POSTS]),
+  });
+
+  const newPostMutation = useMutation({
+    mutationFn: async (title: string) => {
+      await wait(1000);
+      return POSTS.push({ id: POSTS.length + 1, title });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["posts"] as InvalidateQueryFilters);
+    },
   });
 
   if (postQuery.isLoading) {
@@ -29,6 +46,12 @@ function App() {
           <li key={post.id}>{post.title}</li>
         ))}
       </ul>
+      <button
+        onClick={() => newPostMutation.mutate("New Post")}
+        disabled={newPostMutation.isPending}
+      >
+        New Post
+      </button>
     </>
   );
 }
